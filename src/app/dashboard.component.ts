@@ -9,6 +9,8 @@ declare var Chart: any;
 })
 export class DashboardComponent implements OnInit, AfterViewInit {
   
+  timestamp = new Date().toLocaleString('fr-FR');
+
   kpiData = {
     sessions: '12,847',
     users: '8,392',
