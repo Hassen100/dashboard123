@@ -1,0 +1,170 @@
+<!-- Loading -->
+<div class="loading" id="loading"><div class="spinner"></div></div>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-tag">#SEO-IA</div>
+    <h1>SEO Pulse Board</h1>
+    <p>Analysez le trafic organique, les pages clés, le taux de rebond et les mots-clés performants en temps réel.</p>
+  </div>
+  <div class="header-status">
+    <div class="status-dot"></div>
+    <span id="last-sync">Dernière sync: —</span>
+  </div>
+</header>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <div class="filter-grid">
+      <div class="field">
+        <label>Début</label>
+        <input type="date" id="dateStart" />
+      </div>
+      <div class="field">
+        <label>Fin</label>
+        <input type="date" id="dateEnd" />
+      </div>
+      <div class="field">
+        <label>Page</label>
+        <input type="text" id="pageUrl" placeholder="https://example.com/page" />
+      </div>
+      <div class="field">
+        <label>Source</label>
+        <select id="source">
+          <option value="all">Toutes</option>
+          <option value="organic">Organique</option>
+          <option value="direct">Direct</option>
+          <option value="referral">Referral</option>
+          <option value="social">Social</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" (click)="applyFilters()">⚡ Appliquer filtres</button>
+      <button class="btn btn-outline" (click)="verifyUrl()">🔍 Vérifier URL</button>
+      <button class="btn btn-outline" (click)="syncGoogle()">🔄 Sync Google</button>
+      <button class="btn btn-ai" (click)="generateAIRecommendations()">✨ Générer recommandations IA</button>
+      <button class="btn btn-ghost" (click)="logout()">↩ Déconnexion</button>
+    </div>
+    <div class="alert" id="alert"></div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Sessions</div>
+      <div class="kpi-value" id="kpi-sessions">{{kpiData.sessions}}</div>
+      <div class="kpi-delta delta-up" id="d-sessions">{{kpiData.sessionsDelta}}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Utilisateurs</div>
+      <div class="kpi-value" id="kpi-users">{{kpiData.users}}</div>
+      <div class="kpi-delta delta-up" id="d-users">{{kpiData.usersDelta}}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Pages vues</div>
+      <div class="kpi-value" id="kpi-pageviews">{{kpiData.pageviews}}</div>
+      <div class="kpi-delta" id="d-pageviews">{{kpiData.pageviewsDelta}}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Taux de rebond moyen</div>
+      <div class="kpi-value" id="kpi-bounce">{{kpiData.bounceRate}}%</div>
+      <div class="kpi-delta delta-down" id="d-bounce">{{kpiData.bounceRateDelta}}</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">📈 Trafic organique dans le temps</div>
+      <div class="chart-wrap"><canvas id="chart-traffic"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🔑 Top mots-clés (clics)</div>
+      <div class="chart-wrap"><canvas id="chart-keywords"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Bottom row -->
+  <div class="bottom-grid">
+    <!-- Top pages table -->
+    <div class="table-card">
+      <div class="table-title">📄 Pages les plus consultées</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Page</th>
+            <th>Vues</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody id="top-pages">
+          <tr *ngFor="let page of topPages">
+            <td>{{page.url}}</td>
+            <td>{{page.views}}</td>
+            <td><span class="badge" [class]="'badge-' + page.trend">{{page.trendIcon}} {{page.trendPercent}}%</span></td>
+          </tr>
+          <tr *ngIf="topPages.length === 0">
+            <td colspan="3" style="color:var(--text-muted);font-size:12px;">Appliquer les filtres…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Keywords table -->
+    <div class="table-card">
+      <div class="table-title">🔍 Mots-clés performants</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Mot-clé</th>
+            <th>Position</th>
+            <th>CTR</th>
+          </tr>
+        </thead>
+        <tbody id="top-keywords">
+          <tr *ngFor="let keyword of topKeywords">
+            <td>{{keyword.term}}</td>
+            <td>{{keyword.position}}</td>
+            <td>{{keyword.ctr}}%</td>
+          </tr>
+          <tr *ngIf="topKeywords.length === 0">
+            <td colspan="3" style="color:var(--text-muted);font-size:12px;">Appliquer les filtres…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Bounce rate by source -->
+    <div class="chart-card">
+      <div class="chart-title">📊 Rebond par source</div>
+      <div class="chart-wrap"><canvas id="chart-bounce"></canvas></div>
+    </div>
+  </div>
+
+  <!-- AI Recommendations Panel -->
+  <div class="ai-panel" id="ai-panel" [style.display]="showAIPanel ? 'block' : 'none'">
+    <div class="ai-header">
+      <div class="ai-icon">🤖</div>
+      <div>
+        <div class="ai-title">Recommandations IA</div>
+        <div style="font-size:12px;color:var(--text-muted);">Générées par analyse NLP des tendances de trafic</div>
+      </div>
+    </div>
+    <div class="ai-grid" id="ai-grid">
+      <div *ngFor="let rec of aiRecommendations" class="ai-rec">
+        <div class="ai-rec-icon">{{rec.icon}}</div>
+        <div class="ai-rec-title">{{rec.title}}</div>
+        <div class="ai-rec-body">{{rec.body}}</div>
+        <span class="priority" [class]="rec.priority">{{rec.label}}</span>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>SEO Pulse Board &mdash; Projet #SEO-IA &mdash; Python (Flask/Django) · Node.js · Google Analytics API · NLP</footer>
