@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "name": "dashboard-seo",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/dashboard/browser"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/dashboard/browser",
+  "installCommand": "npm install",
+  "framework": null
+}
