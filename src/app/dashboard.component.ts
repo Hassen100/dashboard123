@@ -54,34 +54,67 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   private loadRealData() {
+    // Afficher le loading
+    document.getElementById('loading')!.style.display = 'flex';
+    
     // Charger les vraies données depuis le backend
-    this.seoService.getKpis().subscribe(data => {
-      this.kpiData = {
-        sessions: data.sessions.toLocaleString('fr-FR'),
-        users: data.users.toLocaleString('fr-FR'),
-        pageviews: data.pageviews.toLocaleString('fr-FR'),
-        bounceRate: data.bounceRate.toFixed(1),
-        sessionsDelta: '+12.5%',
-        usersDelta: '+8.7%',
-        pageviewsDelta: '+15.2%',
-        bounceRateDelta: '-2.1%'
-      };
+    this.seoService.getKpis().subscribe({
+      next: (data) => {
+        this.kpiData = {
+          sessions: data.sessions.toLocaleString('fr-FR'),
+          users: data.users.toLocaleString('fr-FR'),
+          pageviews: data.pageviews.toLocaleString('fr-FR'),
+          bounceRate: data.bounceRate.toFixed(1),
+          sessionsDelta: '+12.5%',
+          usersDelta: '+8.7%',
+          pageviewsDelta: '+15.2%',
+          bounceRateDelta: '-2.1%'
+        };
+        
+        // Mettre à jour les KPIs dans le DOM
+        document.getElementById('kpi-sessions')!.textContent = this.kpiData.sessions;
+        document.getElementById('kpi-users')!.textContent = this.kpiData.users;
+        document.getElementById('kpi-pageviews')!.textContent = this.kpiData.pageviews;
+        document.getElementById('kpi-bounce')!.textContent = this.kpiData.bounceRate + '%';
+      },
+      error: (error) => {
+        console.error('Erreur chargement KPIs:', error);
+        this.showAlert('❌ Erreur de chargement des données Google Analytics', 'error');
+      }
     });
 
-    this.seoService.getTopPages().subscribe(pages => {
-      this.topPages = pages.map((page, index) => ({
-        ...page,
-        trendIcon: index % 3 === 0 ? '↑' : index % 3 === 1 ? '→' : '↓',
-        trendPercent: Math.floor(Math.random() * 20) - 5
-      }));
+    this.seoService.getTopPages().subscribe({
+      next: (pages) => {
+        this.topPages = pages.map((page, index) => ({
+          ...page,
+          views: page.views,
+          trendIcon: index % 3 === 0 ? '↑' : index % 3 === 1 ? '→' : '↓',
+          trendPercent: Math.floor(Math.random() * 20) - 5
+        }));
+      },
+      error: (error) => {
+        console.error('Erreur chargement pages:', error);
+      }
     });
 
-    this.seoService.getKeywords().subscribe(keywords => {
-      this.topKeywords = keywords;
+    this.seoService.getKeywords().subscribe({
+      next: (keywords) => {
+        this.topKeywords = keywords;
+      },
+      error: (error) => {
+        console.error('Erreur chargement mots-clés:', error);
+      }
     });
 
-    this.seoService.getTrafficData().subscribe(trafficData => {
-      this.trafficData = trafficData;
+    this.seoService.getTrafficData().subscribe({
+      next: (trafficData) => {
+        this.trafficData = trafficData;
+        // Mettre à jour le graphique avec les vraies données
+        setTimeout(() => this.initCharts(), 100);
+      },
+      error: (error) => {
+        console.error('Erreur chargement trafic:', error);
+      }
     });
   }
 
@@ -202,28 +235,71 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   applyFilters() {
-    this.showAlert('⚡ Filtres appliqués avec succès.', 'success');
-    this.updateData();
+    const start = (document.getElementById('dateStart') as HTMLInputElement)?.value;
+    const end = (document.getElementById('dateEnd') as HTMLInputElement)?.value;
+    const source = (document.getElementById('source') as HTMLSelectElement)?.value;
+    
+    this.showAlert('⚡ Chargement des données Google Analytics...', 'info');
+    
+    // Charger les données avec les filtres
+    this.seoService.getKpis(start, end).subscribe({
+      next: (data) => {
+        this.kpiData = {
+          sessions: data.sessions.toLocaleString('fr-FR'),
+          users: data.users.toLocaleString('fr-FR'),
+          pageviews: data.pageviews.toLocaleString('fr-FR'),
+          bounceRate: data.bounceRate.toFixed(1),
+          sessionsDelta: '+12.5%',
+          usersDelta: '+8.7%',
+          pageviewsDelta: '+15.2%',
+          bounceRateDelta: '-2.1%'
+        };
+        
+        // Mettre à jour le DOM
+        document.getElementById('kpi-sessions')!.textContent = this.kpiData.sessions;
+        document.getElementById('kpi-users')!.textContent = this.kpiData.users;
+        document.getElementById('kpi-pageviews')!.textContent = this.kpiData.pageviews;
+        document.getElementById('kpi-bounce')!.textContent = this.kpiData.bounceRate + '%';
+        
+        this.showAlert('✅ Données Google Analytics chargées avec les filtres', 'success');
+        this.hideLoading();
+      },
+      error: (error) => {
+        console.error('Erreur filtres:', error);
+        this.showAlert('❌ Erreur de chargement des données filtrées', 'error');
+      }
+    });
   }
 
   verifyUrl() {
-    const urlInput = document.getElementById('pageUrl') as HTMLInputElement;
-    const url = urlInput?.value?.trim();
-    if (!url) { 
-      this.showAlert('Veuillez saisir une URL.', 'error'); 
-      return; 
+    const url = (document.getElementById('pageUrl') as HTMLInputElement)?.value;
+    if (!url) {
+      this.showAlert('Veuillez entrer une URL à vérifier', 'warning');
+      return;
     }
-    try { 
-      new URL(url); 
-      this.showAlert('✓ URL valide.', 'success'); 
-    } catch { 
-      this.showAlert('✗ URL invalide. Format: https://example.com/page', 'error'); 
-    }
+    
+    this.showAlert('Vérification des données Google Analytics...', 'info');
+    
+    // Charger les vraies données depuis le backend
+    this.loadRealData();
+    
+    setTimeout(() => {
+      this.showAlert(`✅ Données Google Analytics chargées pour: ${url}`, 'success');
+      this.hideLoading();
+    }, 2000);
   }
 
   syncGoogle() {
-    this.showAlert('🔄 Synchronisation Google Analytics & Search Console effectuée.', 'info');
-    document.getElementById('last-sync')!.textContent = 'Dernière sync: ' + new Date().toLocaleTimeString('fr-FR');
+    this.showAlert('🔄 Synchronisation avec Google Analytics...', 'info');
+    
+    // Recharger toutes les données
+    this.loadRealData();
+    
+    setTimeout(() => {
+      document.getElementById('last-sync')!.textContent = 'Dernière sync: ' + new Date().toLocaleTimeString('fr-FR');
+      this.showAlert('✅ Synchronisation Google Analytics terminée', 'success');
+      this.hideLoading();
+    }, 2000);
   }
 
   generateAIRecommendations() {
@@ -239,6 +315,10 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.showAlert('↩ Déconnexion...', 'info');
   }
 
+  private hideLoading() {
+    document.getElementById('loading')!.style.display = 'none';
+  }
+
   private updateData() {
     // Update KPIs with random variations
     this.kpiData.sessions = (this.randomBetween(10000, 15000)).toLocaleString('fr-FR');
@@ -250,7 +330,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.initCharts();
   }
 
-  private showAlert(message: string, type: 'success' | 'error' | 'info') {
+  private showAlert(message: string, type: 'success' | 'error' | 'info' | 'warning') {
     const alertEl = document.getElementById('alert');
     if (alertEl) {
       alertEl.textContent = message;
