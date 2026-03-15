@@ -59,27 +59,42 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     
     // Charger les vraies données depuis le backend
     this.seoService.getKpis().subscribe({
-      next: (data) => {
-        this.kpiData = {
-          sessions: data.sessions.toLocaleString('fr-FR'),
-          users: data.users.toLocaleString('fr-FR'),
-          pageviews: data.pageviews.toLocaleString('fr-FR'),
-          bounceRate: data.bounceRate.toFixed(1),
-          sessionsDelta: '+12.5%',
-          usersDelta: '+8.7%',
-          pageviewsDelta: '+15.2%',
-          bounceRateDelta: '-2.1%'
-        };
-        
-        // Mettre à jour les KPIs dans le DOM
-        document.getElementById('kpi-sessions')!.textContent = this.kpiData.sessions;
-        document.getElementById('kpi-users')!.textContent = this.kpiData.users;
-        document.getElementById('kpi-pageviews')!.textContent = this.kpiData.pageviews;
-        document.getElementById('kpi-bounce')!.textContent = this.kpiData.bounceRate + '%';
+      next: (response) => {
+        if (response.success) {
+          // Mettre à jour les KPIs avec les vraies données
+          this.kpiData = {
+            sessions: response.total.sessions.toLocaleString('fr-FR'),
+            users: response.total.activeUsers.toLocaleString('fr-FR'),
+            pageviews: response.total.pageviews.toLocaleString('fr-FR'),
+            bounceRate: response.total.bounceRate.toFixed(1),
+            sessionsDelta: '+12.5%',
+            usersDelta: '+8.7%',
+            pageviewsDelta: '+15.2%',
+            bounceRateDelta: '-2.1%'
+          };
+          
+          // Mettre à jour les KPIs dans le DOM
+          document.getElementById('kpi-sessions')!.textContent = this.kpiData.sessions;
+          document.getElementById('kpi-users')!.textContent = this.kpiData.users;
+          document.getElementById('kpi-pageviews')!.textContent = this.kpiData.pageviews;
+          document.getElementById('kpi-bounce')!.textContent = this.kpiData.bounceRate + '%';
+          
+          // Mettre à jour les données de trafic pour les graphiques
+          this.trafficData = response.data.map((item: any) => ({
+            date: item.date,
+            sessions: item.sessions,
+            users: item.activeUsers,
+            pageviews: item.pageviews
+          }));
+          
+          // Mettre à jour le graphique avec les vraies données
+          setTimeout(() => this.initCharts(), 100);
+        }
       },
       error: (error) => {
         console.error('Erreur chargement KPIs:', error);
         this.showAlert('❌ Erreur de chargement des données Google Analytics', 'error');
+        this.hideLoading();
       }
     });
 

@@ -30,37 +30,36 @@ export interface Keyword {
   ctr: number;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class SeoDataService {
-  
-  private API = 'https://votre-backend.railway.app/api';
+  // URL de votre backend déployé
+  private apiUrl = 'https://votre-backend.railway.app/api';
   
   constructor(private http: HttpClient) {}
 
-  getKpis(start?: string, end?: string): Observable<KpiData> {
-    const params = start ? `?start=${start}&end=${end}` : '';
-    return this.http.get<KpiData>(`${this.API}/kpis${params}`);
+  // KPIs principaux
+  getKpis(startDate?: string, endDate?: string): Observable<any> {
+    let url = `${this.apiUrl}/analytics`;
+    if (startDate && endDate) {
+      url += `?start=${startDate}&end=${endDate}`;
+    }
+    return this.http.get(url);
   }
 
-  getTrafficData(): Observable<TrafficPoint[]> {
-    return this.http.get<TrafficPoint[]>(`${this.API}/traffic`);
+  // Données de trafic (pour graphiques)
+  getTrafficData(startDate?: string, endDate?: string): Observable<any> {
+    return this.getKpis(startDate, endDate);
   }
 
-  getTopPages(): Observable<TopPage[]> {
-    return this.http.get<TopPage[]>(`${this.API}/top-pages`);
+  // Top pages
+  getTopPages(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/top-pages`);
   }
 
-  // Simuler les mots-clés pour l'instant
-  getKeywords(): Observable<Keyword[]> {
-    const mockKeywords: Keyword[] = [
-      { term: 'audit seo gratuit', keyword: 'audit seo gratuit', position: 3, ctr: 28.5 },
-      { term: 'referencement site', keyword: 'referencement site', position: 7, ctr: 19.2 },
-      { term: 'optimisation seo', keyword: 'optimisation seo', position: 5, ctr: 22.1 },
-      { term: 'consultant seo paris', keyword: 'consultant seo paris', position: 12, ctr: 15.8 }
-    ];
-    return new Observable(observer => {
-      observer.next(mockKeywords);
-      observer.complete();
-    });
+  // Mots-clés
+  getKeywords(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/keywords`);
   }
 }
