@@ -1,5 +1,6 @@
 import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { SeoDataService, KpiData, TrafficPoint, TopPage, Keyword } from './seo-data.service';
+import { AuthService } from './auth/auth.service';
 
 declare var Chart: any;
 
@@ -41,7 +42,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   private keywordsChart: any;
   private bounceChart: any;
 
-  constructor(private seoService: SeoDataService) {}
+  constructor(private seoService: SeoDataService, private authService: AuthService) {}
 
   ngOnInit() {
     this.loadRealData();
@@ -338,7 +339,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   logout() {
-    this.showAlert('↩ Déconnexion...', 'info');
+    this.authService.logout();
   }
 
   private hideLoading() {

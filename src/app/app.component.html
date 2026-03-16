@@ -1,1 +1,9 @@
-<app-auth></app-auth>
+<div class="app-container">
+  <!-- Page d'authentification -->
+  <app-auth *ngIf="!isAuthenticated"></app-auth>
+  
+  <!-- Dashboard (uniquement si authentifié) -->
+  <div *ngIf="isAuthenticated" class="dashboard-wrapper">
+    <app-dashboard></app-dashboard>
+  </div>
+</div>

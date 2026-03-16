@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { AuthService } from './auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-auth',
@@ -13,7 +15,7 @@ export class AuthComponent implements OnInit {
   showPassword = false;
   showConfirmPassword = false;
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: FormBuilder, private authService: AuthService, private router: Router) {
     this.authForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
@@ -65,27 +67,39 @@ export class AuthComponent implements OnInit {
 
     this.isLoading = true;
 
-    // Simulate API call
-    setTimeout(() => {
-      this.isLoading = false;
-      
-      if (this.isLoginMode) {
-        console.log('Login attempt:', {
-          email: this.email.value,
-          password: this.password.value
+    if (this.isLoginMode) {
+      // Utiliser le service d'authentification
+      this.authService.login(this.email.value, this.password.value)
+        .then((success) => {
+          this.isLoading = false;
+          if (success) {
+            console.log('Connexion réussie:', {
+              email: this.email.value
+            });
+            // La redirection se fait automatiquement via le AppComponent
+            this.authForm.reset();
+          } else {
+            alert('Échec de la connexion. Vérifiez vos identifiants.');
+          }
+        })
+        .catch((error) => {
+          this.isLoading = false;
+          console.error('Erreur de connexion:', error);
+          alert('Erreur lors de la connexion.');
         });
-        alert('Connexion réussie ! (Simulation)');
-      } else {
+    } else {
+      // Simulation d'inscription
+      setTimeout(() => {
+        this.isLoading = false;
         console.log('Signup attempt:', {
           fullName: this.fullName.value,
           email: this.email.value,
           password: this.password.value
         });
-        alert('Inscription réussie ! (Simulation)');
-      }
-      
-      this.authForm.reset();
-    }, 1500);
+        alert('Inscription réussie ! Vous pouvez maintenant vous connecter.');
+        this.switchMode('login');
+      }, 1500);
+    }
   }
 
   private markFormGroupTouched(formGroup: FormGroup): void {
