@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
 @Component({
   selector: 'app-auth',
@@ -22,7 +22,18 @@ export class AuthComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    // Set up password match validator for signup
+    this.confirmPassword.valueChanges.subscribe(() => {
+      if (!this.isLoginMode && this.confirmPassword.value) {
+        this.confirmPassword.setValidators([
+          Validators.required,
+          this.passwordMatchValidator()
+        ]);
+        this.confirmPassword.updateValueAndValidity();
+      }
+    });
+  }
 
   get email(): AbstractControl {
     return this.authForm.get('email')!;
@@ -50,7 +61,10 @@ export class AuthComponent implements OnInit {
       this.confirmPassword.setValidators([]);
     } else {
       this.fullName.setValidators([Validators.required]);
-      this.confirmPassword.setValidators([Validators.required]);
+      this.confirmPassword.setValidators([
+        Validators.required,
+        this.passwordMatchValidator()
+      ]);
     }
     
     this.fullName.updateValueAndValidity();
@@ -118,11 +132,13 @@ export class AuthComponent implements OnInit {
     return '';
   }
 
-  passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
-    const password = control.root.get('password')?.value;
-    const confirmPassword = control.value;
-    
-    return password === confirmPassword ? null : { passwordMismatch: true };
+  passwordMatchValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const password = control.root.get('password')?.value;
+      const confirmPassword = control.value;
+      
+      return password === confirmPassword ? null : { passwordMismatch: true };
+    };
   }
 
   togglePassword(field: 'password' | 'confirmPassword'): void {

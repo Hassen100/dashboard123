@@ -1,9 +1,17 @@
 <div class="auth-container">
+  <!-- Background decoration -->
+  <div class="bg-decoration">
+    <div class="bg-shape bg-shape-1"></div>
+    <div class="bg-shape bg-shape-2"></div>
+    <div class="bg-shape bg-shape-3"></div>
+  </div>
+
   <div class="auth-card">
     <!-- Header -->
     <div class="auth-header">
       <div class="logo">
-        <i class="fas fa-chart-line"></i>
+        <img src="assets/logo.png" alt="SEO Dashboard" class="logo-img" *ngIf="false">
+        <i class="fas fa-chart-line" *ngIf="true"></i>
         <span>SEO Dashboard</span>
       </div>
       <p class="auth-subtitle">
