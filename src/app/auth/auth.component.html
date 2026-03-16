@@ -1,0 +1,161 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <!-- Header -->
+    <div class="auth-header">
+      <div class="logo">
+        <i class="fas fa-chart-line"></i>
+        <span>SEO Dashboard</span>
+      </div>
+      <p class="auth-subtitle">
+        {{ isLoginMode ? 'Connectez-vous à votre tableau de bord' : 'Créez votre compte' }}
+      </p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button 
+        class="tab-btn" 
+        [class.active]="isLoginMode"
+        (click)="switchMode('login')">
+        <i class="fas fa-sign-in-alt"></i>
+        Connexion
+      </button>
+      <button 
+        class="tab-btn" 
+        [class.active]="!isLoginMode"
+        (click)="switchMode('signup')">
+        <i class="fas fa-user-plus"></i>
+        Inscription
+      </button>
+    </div>
+
+    <!-- Form Container -->
+    <div class="form-container">
+      <form [formGroup]="authForm" (ngSubmit)="onSubmit()">
+        <!-- Full Name (Signup only) -->
+        <div class="form-field" *ngIf="!isLoginMode">
+          <label for="fullName">Nom complet</label>
+          <div class="input-wrapper">
+            <i class="fas fa-user input-icon"></i>
+            <input
+              id="fullName"
+              type="text"
+              formControlName="fullName"
+              placeholder="Jean Dupont"
+              [class.error]="fullName.invalid && fullName.touched"
+            />
+          </div>
+          <div class="error-message" *ngIf="fullName.invalid && fullName.touched">
+            {{ getErrorMessage(fullName, 'Nom complet') }}
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-field">
+          <label for="email">Adresse email</label>
+          <div class="input-wrapper">
+            <i class="fas fa-envelope input-icon"></i>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              placeholder="jean@exemple.com"
+              [class.error]="email.invalid && email.touched"
+            />
+          </div>
+          <div class="error-message" *ngIf="email.invalid && email.touched">
+            {{ getErrorMessage(email, 'Email') }}
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-field">
+          <label for="password">Mot de passe</label>
+          <div class="input-wrapper">
+            <i class="fas fa-lock input-icon"></i>
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="•••••••••"
+              [class.error]="password.invalid && password.touched"
+            />
+            <button 
+              type="button" 
+              class="toggle-password"
+              (click)="togglePassword('password')"
+            >
+              <i class="fas" [class]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
+          <div class="error-message" *ngIf="password.invalid && password.touched">
+            {{ getErrorMessage(password, 'Mot de passe') }}
+          </div>
+        </div>
+
+        <!-- Confirm Password (Signup only) -->
+        <div class="form-field" *ngIf="!isLoginMode">
+          <label for="confirmPassword">Confirmer le mot de passe</label>
+          <div class="input-wrapper">
+            <i class="fas fa-lock input-icon"></i>
+            <input
+              id="confirmPassword"
+              [type]="showConfirmPassword ? 'text' : 'password'"
+              formControlName="confirmPassword"
+              placeholder="•••••••••"
+              [class.error]="confirmPassword.invalid && confirmPassword.touched"
+            />
+            <button 
+              type="button" 
+              class="toggle-password"
+              (click)="togglePassword('confirmPassword')"
+            >
+              <i class="fas" [class]="showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
+          <div class="error-message" *ngIf="confirmPassword.invalid && confirmPassword.touched">
+            {{ getErrorMessage(confirmPassword, 'Confirmation') }}
+          </div>
+        </div>
+
+        <!-- Remember Me (Login only) -->
+        <div class="form-options" *ngIf="isLoginMode">
+          <label class="checkbox-label">
+            <input type="checkbox" />
+            <span class="checkmark"></span>
+            Se souvenir de moi
+          </label>
+          <a href="#" class="forgot-password" (click)="forgotPassword(); $event.preventDefault()">
+            Mot de passe oublié ?
+          </a>
+        </div>
+
+        <!-- Submit Button -->
+        <button 
+          type="submit" 
+          class="submit-btn"
+          [disabled]="authForm.invalid || isLoading"
+        >
+          <span *ngIf="!isLoading">
+            <i class="fas" [class]="isLoginMode ? 'fa-sign-in-alt' : 'fa-user-plus'"></i>
+            {{ isLoginMode ? 'Se connecter' : "S'inscrire" }}
+          </span>
+          <span *ngIf="isLoading" class="loading-text">
+            <i class="fas fa-spinner fa-spin"></i>
+            {{ isLoginMode ? 'Connexion...' : 'Inscription...' }}
+          </span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Footer -->
+    <div class="auth-footer">
+      <p class="footer-text">
+        {{ isLoginMode ? 'Pas encore de compte ?' : 'Déjà un compte ?' }}
+        <a href="#" (click)="switchMode(isLoginMode ? 'signup' : 'login'); $event.preventDefault()">
+          {{ isLoginMode ? "S'inscrire" : 'Se connecter' }}
+        </a>
+      </p>
+    </div>
+  </div>
+</div>
