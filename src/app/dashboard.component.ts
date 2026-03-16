@@ -60,7 +60,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     // Charger les vraies données depuis le backend
     this.seoService.getKpis().subscribe({
       next: (response) => {
-        if (response.success) {
+        if (response && response.success) {
           // Mettre à jour les KPIs avec les vraies données
           this.kpiData = {
             sessions: response.total.sessions.toLocaleString('fr-FR'),
@@ -89,14 +89,24 @@ export class DashboardComponent implements OnInit, AfterViewInit {
           
           // Mettre à jour le graphique avec les vraies données
           setTimeout(() => this.initCharts(), 100);
+          
+          // Message de succès avec vraies données
+          console.log('✅ Données Google Analytics chargées:', response);
+        } else {
+          // Si la réponse n'est pas valide, utiliser données mock
+          this.showAlert('⚠️ Backend non disponible - Utilisation des données de démonstration', 'warning');
+          this.loadMockData();
         }
       },
       error: (error) => {
         console.error('Erreur chargement KPIs:', error);
-        this.showAlert('❌ Erreur de chargement des données Google Analytics', 'error');
+        this.showAlert('❌ Erreur de connexion au backend - Démarrer le backend sur localhost:5000', 'error');
         this.hideLoading();
+        // Optionnel: charger données mock en cas d'erreur
+        // this.loadMockData();
       }
     });
+  }
 
     this.seoService.getTopPages().subscribe({
       next: (pages) => {
@@ -280,8 +290,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         this.hideLoading();
       },
       error: (error) => {
-        console.error('Erreur filtres:', error);
-        this.showAlert('❌ Erreur de chargement des données filtrées', 'error');
+        console.error('Erreur chargement KPIs:', error);
+        this.showAlert('❌ Backend non disponible - Démarrez le backend: python app-ultra-secure.py', 'error');
+        this.hideLoading();
       }
     });
   }
@@ -307,7 +318,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   syncGoogle() {
     this.showAlert('🔄 Synchronisation avec Google Analytics...', 'info');
     
-    // Recharger toutes les données
+    // Recharger toutes les données depuis le backend
     this.loadRealData();
     
     setTimeout(() => {

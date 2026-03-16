@@ -35,7 +35,7 @@ export interface Keyword {
 })
 export class SeoDataService {
   // URL de votre backend déployé
-  private apiUrl = 'https://votre-backend.railway.app/api';
+  private apiUrl = 'http://localhost:5000/api';
   
   constructor(private http: HttpClient) {}
 
