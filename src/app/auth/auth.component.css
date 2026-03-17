@@ -58,6 +58,52 @@
   50% { transform: translateY(-20px) rotate(180deg); }
 }
 
+/* ── AUTH ILLUSTRATION ─────────────────────────── */
+.auth-illustration {
+  position: absolute;
+  left: 50px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 300px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.illustration-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.illustration-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.illustration-placeholder i {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.illustration-placeholder p {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
 /* ── AUTH CARD ─────────────────────────────────────── */
 .auth-card {
   background: rgba(255, 255, 255, 0.95);
@@ -70,6 +116,8 @@
   animation: slideUp 0.5s ease-out;
   position: relative;
   z-index: 10;
+  margin-left: auto;
+  margin-right: 50px;
 }
 
 @keyframes slideUp {
@@ -388,6 +436,17 @@
 }
 
 /* ── RESPONSIVE DESIGN ───────────────────────────── */
+@media (max-width: 1200px) {
+  .auth-illustration {
+    display: none;
+  }
+  
+  .auth-card {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
 @media (max-width: 480px) {
   .auth-container {
     padding: 16px;
