@@ -1,0 +1,8 @@
+README.md
+*.md
+.git/
+node_modules/
+src/
+.angular/
+tsconfig*.json
+package-lock.json

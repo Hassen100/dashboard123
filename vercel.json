@@ -19,12 +19,7 @@
       "dest": "/$1"
     },
     {
-      "src": "/README.md",
-      "dest": "/index.html",
-      "status": 301
-    },
-    {
-      "src": "/(.*)",
+      "src": "/(?!.*\\.md$).*",
       "dest": "/index.html",
       "status": 200
     }
