@@ -52,7 +52,7 @@ export class AuthComponent implements OnInit {
       this.confirmPassword.setValidators([]);
     } else {
       this.fullName.setValidators([Validators.required]);
-      this.confirmPassword.setValidators([Validators.required]);
+      this.confirmPassword.setValidators([Validators.required, this.passwordMatchValidator.bind(this)]);
     }
     
     this.fullName.updateValueAndValidity();

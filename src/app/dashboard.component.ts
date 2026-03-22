@@ -1,6 +1,7 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { SeoDataService, KpiData, TrafficPoint, TopPage, Keyword } from './seo-data.service';
 import { AuthService } from './auth/auth.service';
+import { forkJoin } from 'rxjs';
 
 declare var Chart: any;
 
@@ -13,6 +14,10 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   
   timestamp = new Date().toLocaleString('fr-FR');
   trafficData: TrafficPoint[] = [];
+  isLoading = false;
+  showAlertMessage = '';
+  alertType: 'success' | 'error' | 'info' | 'warning' = 'info';
+  showNotification = false;
 
   kpiData = {
     sessions: '12,847',
@@ -38,11 +43,20 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     { icon:'📱', title:'Mobile-first indexing', body:'3 pages présentent des éléments non adaptés au mobile. Vérifiez les tableaux et les CTA sur petits écrans.', priority:'p-low', label:'Priorité faible' }
   ];
 
+  @ViewChild('chartTraffic') chartTrafficEl!: ElementRef;
+  @ViewChild('chartKeywords') chartKeywordsEl!: ElementRef;
+  @ViewChild('chartBounce') chartBounceEl!: ElementRef;
+  @ViewChild('lastSync') lastSyncEl!: ElementRef;
+
   private trafficChart: any;
   private keywordsChart: any;
   private bounceChart: any;
 
-  constructor(private seoService: SeoDataService, private authService: AuthService) {}
+  constructor(
+    private seoService: SeoDataService, 
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit() {
     this.loadRealData();
@@ -55,126 +69,123 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   private loadRealData() {
-    // Afficher le loading
-    const loadingEl = document.getElementById('loading');
-    if (loadingEl) {
-      loadingEl.style.display = 'flex';
+    this.isLoading = true;
+    
+    // Utiliser forkJoin pour coordonner tous les appels API
+    forkJoin({
+      kpis: this.seoService.getKpis(),
+      topPages: this.seoService.getTopPages(),
+      keywords: this.seoService.getKeywords(),
+      trafficData: this.seoService.getTrafficData()
+    }).subscribe({
+      next: (results) => {
+        this.handleApiResponse(results);
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Erreur chargement données:', error);
+        this.showAlert('❌ Erreur de connexion au backend - Démarrer le backend sur localhost:5000', 'error');
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private handleApiResponse(results: any) {
+    // Normaliser et traiter les KPIs
+    const kpiResponse = this.normalizeKpiResponse(results.kpis);
+    if (kpiResponse.success) {
+      this.updateKpiData(kpiResponse);
+    } else {
+      this.showAlert('⚠️ Backend non disponible - Utilisation des données de démonstration', 'warning');
+    }
+
+    // Traiter les autres données
+    this.topPages = results.topPages.map((page: TopPage, index: number) => ({
+      ...page,
+      trendIcon: index % 3 === 0 ? '↑' : index % 3 === 1 ? '→' : '↓',
+      trendPercent: Math.floor(Math.random() * 20) - 5
+    }));
+
+    this.topKeywords = results.keywords;
+    
+    // Consolider les données de trafic
+    this.trafficData = results.trafficData || kpiResponse.trafficData || [];
+
+    // Initialiser les graphiques une seule fois
+    setTimeout(() => this.initCharts(), 100);
+  }
+
+  private normalizeKpiResponse(response: any) {
+    // Normaliser la réponse API pour avoir une structure cohérente
+    const total = response.total || response;
+    return {
+      success: response.success || true,
+      total: total,
+      trafficData: response.data || this.generateMockTrafficData()
+    };
+  }
+
+  private updateKpiData(response: any) {
+    const total = response.total;
+    this.kpiData = {
+      sessions: total.sessions.toLocaleString('fr-FR'),
+      users: total.activeUsers.toLocaleString('fr-FR'),
+      pageviews: total.pageviews.toLocaleString('fr-FR'),
+      bounceRate: total.bounceRate.toFixed(1),
+      sessionsDelta: '+12.5%',
+      usersDelta: '+8.7%',
+      pageviewsDelta: '+15.2%',
+      bounceRateDelta: '-2.1%'
+    };
+
+    // Mettre à jour les données de trafic pour les graphiques
+    this.trafficData = response.data.map((item: any) => ({
+      date: item.date,
+      label: new Date(item.date).toLocaleDateString('fr-FR', { day:'2-digit', month:'short' }),
+      sessions: item.sessions,
+      users: item.activeUsers,
+      pageviews: item.pageviews,
+      organic: Math.floor(item.sessions * (0.4 + Math.random() * 0.3))
+    }));
+  }
+
+  private generateMockTrafficData(): TrafficPoint[] {
+    const data: TrafficPoint[] = [];
+    const today = new Date();
+    
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const sessions = Math.floor(Math.random() * 2000) + 800;
+      const users = Math.floor(sessions * (0.6 + Math.random() * 0.2));
+      const pageviews = Math.floor(sessions * (2 + Math.random() * 2));
+      const organic = Math.floor(sessions * (0.4 + Math.random() * 0.3));
+      
+      data.push({
+        date: date.toISOString().split('T')[0],
+        label: date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+        sessions,
+        users,
+        pageviews,
+        organic
+      });
     }
     
-    // Charger les vraies données depuis le backend
-    this.seoService.getKpis().subscribe({
-      next: (response) => {
-        if (response && response.success) {
-          // Mettre à jour les KPIs avec les vraies données
-          this.kpiData = {
-            sessions: response.total.sessions.toLocaleString('fr-FR'),
-            users: response.total.activeUsers.toLocaleString('fr-FR'),
-            pageviews: response.total.pageviews.toLocaleString('fr-FR'),
-            bounceRate: response.total.bounceRate.toFixed(1),
-            sessionsDelta: '+12.5%',
-            usersDelta: '+8.7%',
-            pageviewsDelta: '+15.2%',
-            bounceRateDelta: '-2.1%'
-          };
-          
-          // Mettre à jour les KPIs dans le DOM
-          const kpiSessions = document.getElementById('kpi-sessions');
-          const kpiUsers = document.getElementById('kpi-users');
-          const kpiPageviews = document.getElementById('kpi-pageviews');
-          const kpiBounce = document.getElementById('kpi-bounce');
-          
-          if (kpiSessions) kpiSessions.textContent = this.kpiData.sessions;
-          if (kpiUsers) kpiUsers.textContent = this.kpiData.users;
-          if (kpiPageviews) kpiPageviews.textContent = this.kpiData.pageviews;
-          if (kpiBounce) kpiBounce.textContent = this.kpiData.bounceRate + '%';
-          
-          // Mettre à jour les données de trafic pour les graphiques
-          this.trafficData = response.data.map((item: any) => ({
-            date: item.date,
-            sessions: item.sessions,
-            users: item.activeUsers,
-            pageviews: item.pageviews
-          }));
-          
-          // Mettre à jour le graphique avec les vraies données
-          setTimeout(() => this.initCharts(), 100);
-          
-          // Message de succès avec vraies données
-          console.log('✅ Données Google Analytics chargées:', response);
-        } else {
-          // Si la réponse n'est pas valide, utiliser données mock
-          this.showAlert('⚠️ Backend non disponible - Utilisation des données de démonstration', 'warning');
-          this.hideLoading();
-        }
-      },
-      error: (error) => {
-        console.error('Erreur chargement KPIs:', error);
-        this.showAlert('❌ Erreur de connexion au backend - Démarrer le backend sur localhost:5000', 'error');
-        this.hideLoading();
-      }
-    });
-
-    this.seoService.getTopPages().subscribe({
-      next: (pages) => {
-        this.topPages = pages.map((page, index) => ({
-          ...page,
-          views: page.views,
-          trendIcon: index % 3 === 0 ? '↑' : index % 3 === 1 ? '→' : '↓',
-          trendPercent: Math.floor(Math.random() * 20) - 5
-        }));
-      },
-      error: (error) => {
-        console.error('Erreur chargement pages:', error);
-      }
-    });
-
-    this.seoService.getKeywords().subscribe({
-      next: (keywords) => {
-        this.topKeywords = keywords;
-      },
-      error: (error) => {
-        console.error('Erreur chargement mots-clés:', error);
-      }
-    });
-
-    this.seoService.getTrafficData().subscribe({
-      next: (trafficData) => {
-        this.trafficData = trafficData;
-        // Mettre à jour le graphique avec les vraies données
-        setTimeout(() => this.initCharts(), 100);
-      },
-      error: (error) => {
-        console.error('Erreur chargement trafic:', error);
-      }
-    });
-  }
-
-  private randomBetween(a: number, b: number): number {
-    return Math.floor(Math.random() * (b - a + 1)) + a;
-  }
-
-  private genDates(n: number): string[] {
-    const dates = [];
-    const d = new Date();
-    for (let i = n - 1; i >= 0; i--) {
-      const dd = new Date(d);
-      dd.setDate(d.getDate() - i);
-      dates.push(dd.toLocaleDateString('fr-FR', { day:'2-digit', month:'short' }));
-    }
-    return dates;
+    return data;
   }
 
   private initCharts() {
     const days = 30;
-    const labels = this.trafficData.length > 0 ? this.trafficData.map(d => d.label) : this.genDates(days);
-    const sessions = this.trafficData.length > 0 ? this.trafficData.map(d => d.sessions) : Array.from({length:days}, () => this.randomBetween(800, 3200));
+    const labels = this.trafficData.length > 0 ? this.trafficData.map(d => d.label) : this.generateMockLabels(days);
+    const sessions = this.trafficData.length > 0 ? this.trafficData.map(d => d.sessions) : this.generateMockSessions(days);
     const organic = this.trafficData.length > 0 ? this.trafficData.map(d => d.organic) : sessions.map(s => Math.floor(s * (.55 + Math.random() * .2)));
 
     // Traffic Chart
     if (this.trafficChart) this.trafficChart.destroy();
-    const trafficCanvas = document.getElementById('chart-traffic') as HTMLCanvasElement;
-    if (trafficCanvas) {
-      this.trafficChart = new Chart(trafficCanvas, {
+    if (this.chartTrafficEl) {
+      this.trafficChart = new Chart(this.chartTrafficEl.nativeElement, {
         type: 'line',
         data: {
           labels,
@@ -216,9 +227,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
     // Keywords Chart
     if (this.keywordsChart) this.keywordsChart.destroy();
-    const keywordsCanvas = document.getElementById('chart-keywords') as HTMLCanvasElement;
-    if (keywordsCanvas) {
-      this.keywordsChart = new Chart(keywordsCanvas, {
+    if (this.chartKeywordsEl) {
+      this.keywordsChart = new Chart(this.chartKeywordsEl.nativeElement, {
         type: 'bar',
         data: {
           labels: ['audit seo gratuit', 'referencement site', 'optimisation seo', 'consultant seo paris', 'agence web lyon'],
@@ -243,9 +253,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
     // Bounce Chart
     if (this.bounceChart) this.bounceChart.destroy();
-    const bounceCanvas = document.getElementById('chart-bounce') as HTMLCanvasElement;
-    if (bounceCanvas) {
-      this.bounceChart = new Chart(bounceCanvas, {
+    if (this.chartBounceEl) {
+      this.bounceChart = new Chart(this.chartBounceEl.nativeElement, {
         type: 'doughnut',
         data: {
           labels: ['Organique', 'Direct', 'Referral', 'Social'],
@@ -265,51 +274,48 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     }
   }
 
+  private generateMockLabels(days: number): string[] {
+    const labels = [];
+    const d = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const dd = new Date(d);
+      dd.setDate(d.getDate() - i);
+      labels.push(dd.toLocaleDateString('fr-FR', { day:'2-digit', month:'short' }));
+    }
+    return labels;
+  }
+
+  private generateMockSessions(days: number): number[] {
+    return Array.from({length: days}, () => Math.floor(Math.random() * 2000) + 800);
+  }
+
   applyFilters() {
-    const start = (document.getElementById('dateStart') as HTMLInputElement)?.value;
-    const end = (document.getElementById('dateEnd') as HTMLInputElement)?.value;
-    const source = (document.getElementById('source') as HTMLSelectElement)?.value;
-    
+    this.isLoading = true;
     this.showAlert('⚡ Chargement des données Google Analytics...', 'info');
     
     // Charger les données avec les filtres
-    this.seoService.getKpis(start, end).subscribe({
-      next: (data) => {
-        this.kpiData = {
-          sessions: data.sessions.toLocaleString('fr-FR'),
-          users: data.users.toLocaleString('fr-FR'),
-          pageviews: data.pageviews.toLocaleString('fr-FR'),
-          bounceRate: data.bounceRate.toFixed(1),
-          sessionsDelta: '+12.5%',
-          usersDelta: '+8.7%',
-          pageviewsDelta: '+15.2%',
-          bounceRateDelta: '-2.1%'
-        };
-        
-        // Mettre à jour le DOM
-        const kpiSessions = document.getElementById('kpi-sessions');
-        const kpiUsers = document.getElementById('kpi-users');
-        const kpiPageviews = document.getElementById('kpi-pageviews');
-        const kpiBounce = document.getElementById('kpi-bounce');
-        
-        if (kpiSessions) kpiSessions.textContent = this.kpiData.sessions;
-        if (kpiUsers) kpiUsers.textContent = this.kpiData.users;
-        if (kpiPageviews) kpiPageviews.textContent = this.kpiData.pageviews;
-        if (kpiBounce) kpiBounce.textContent = this.kpiData.bounceRate + '%';
-        
-        this.showAlert('✅ Données Google Analytics chargées avec les filtres', 'success');
-        this.hideLoading();
+    this.seoService.getKpis().subscribe({
+      next: (response) => {
+        const normalizedResponse = this.normalizeKpiResponse(response);
+        if (normalizedResponse.success) {
+          this.updateKpiData(normalizedResponse);
+          this.showAlert('✅ Données Google Analytics chargées avec les filtres', 'success');
+        }
+        this.isLoading = false;
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Erreur chargement KPIs:', error);
         this.showAlert('❌ Backend non disponible - Démarrez le backend: python app-ultra-secure.py', 'error');
-        this.hideLoading();
+        this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
 
   verifyUrl() {
-    const url = (document.getElementById('pageUrl') as HTMLInputElement)?.value;
+    const urlInput = document.getElementById('pageUrl') as HTMLInputElement;
+    const url = urlInput?.value;
     if (!url) {
       this.showAlert('Veuillez entrer une URL à vérifier', 'warning');
       return;
@@ -322,7 +328,6 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     
     setTimeout(() => {
       this.showAlert(`✅ Données Google Analytics chargées pour: ${url}`, 'success');
-      this.hideLoading();
     }, 2000);
   }
 
@@ -333,12 +338,10 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.loadRealData();
     
     setTimeout(() => {
-      const lastSyncEl = document.getElementById('last-sync');
-      if (lastSyncEl) {
-        lastSyncEl.textContent = 'Dernière sync: ' + new Date().toLocaleTimeString('fr-FR');
+      if (this.lastSyncEl) {
+        this.lastSyncEl.nativeElement.textContent = 'Dernière sync: ' + new Date().toLocaleTimeString('fr-FR');
       }
       this.showAlert('✅ Synchronisation Google Analytics terminée', 'success');
-      this.hideLoading();
     }, 2000);
   }
 
@@ -355,22 +358,14 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.authService.logout();
   }
 
-  private hideLoading() {
-    const loadingEl = document.getElementById('loading');
-    if (loadingEl) {
-      loadingEl.style.display = 'none';
-    }
-  }
-
   private showAlert(message: string, type: 'success' | 'error' | 'info' | 'warning') {
-    const alertEl = document.getElementById('alert');
-    if (alertEl) {
-      alertEl.textContent = message;
-      alertEl.className = `alert ${type}`;
-      alertEl.style.display = 'block';
-      setTimeout(() => {
-        alertEl.style.display = 'none';
-      }, 3000);
-    }
+    this.showAlertMessage = message;
+    this.alertType = type;
+    this.showNotification = true;
+    
+    setTimeout(() => {
+      this.showNotification = false;
+      this.cdr.detectChanges();
+    }, 3000);
   }
 }

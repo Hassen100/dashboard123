@@ -1,0 +1,172 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-content">
+      <h1>Dashboard SEO</h1>
+      <div class="header-actions">
+        <span #lastSync id="last-sync">Dernière sync: {{ timestamp }}</span>
+        <button (click)="syncGoogle()" class="btn-sync">🔄 Sync</button>
+        <button (click)="logout()" class="btn-logout">🚪 Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Alert Notification -->
+  <div *ngIf="showNotification" class="alert {{ alertType }}" style="display: block;">
+    {{ showAlertMessage }}
+  </div>
+
+  <!-- Loading Overlay -->
+  <div *ngIf="isLoading" class="loading-overlay" style="display: flex;">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Chargement des données...</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="dashboard-main">
+    <!-- Filters Section -->
+    <section class="filters-section">
+      <div class="filters-container">
+        <div class="filter-group">
+          <label for="dateStart">Date début:</label>
+          <input id="dateStart" type="date" />
+        </div>
+        <div class="filter-group">
+          <label for="dateEnd">Date fin:</label>
+          <input id="dateEnd" type="date" />
+        </div>
+        <div class="filter-group">
+          <label for="source">Source:</label>
+          <select id="source">
+            <option value="all">Toutes les sources</option>
+            <option value="organic">Organique</option>
+            <option value="direct">Direct</option>
+            <option value="referral">Referral</option>
+            <option value="social">Social</option>
+          </select>
+        </div>
+        <button (click)="applyFilters()" class="btn-primary">Appliquer les filtres</button>
+      </div>
+    </section>
+
+    <!-- KPI Cards -->
+    <section class="kpi-section">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <h3>Sessions</h3>
+            <span class="kpi-delta positive">{{ kpiData.sessionsDelta }}</span>
+          </div>
+          <div class="kpi-value" #kpiSessions>{{ kpiData.sessions }}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <h3>Utilisateurs</h3>
+            <span class="kpi-delta positive">{{ kpiData.usersDelta }}</span>
+          </div>
+          <div class="kpi-value" #kpiUsers>{{ kpiData.users }}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <h3>Pages vues</h3>
+            <span class="kpi-delta positive">{{ kpiData.pageviewsDelta }}</span>
+          </div>
+          <div class="kpi-value" #kpiPageviews>{{ kpiData.pageviews }}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <h3>Taux de rebond</h3>
+            <span class="kpi-delta positive">{{ kpiData.bounceRateDelta }}</span>
+          </div>
+          <div class="kpi-value" #kpiBounce>{{ kpiData.bounceRate }}%</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Charts Section -->
+    <section class="charts-section">
+      <div class="charts-grid">
+        <div class="chart-container">
+          <h3>Évolution du trafic</h3>
+          <canvas #chartTraffic id="chart-traffic"></canvas>
+        </div>
+        <div class="chart-container">
+          <h3>Mots-clés performants</h3>
+          <canvas #chartKeywords id="chart-keywords"></canvas>
+        </div>
+        <div class="chart-container">
+          <h3>Répartition du trafic</h3>
+          <canvas #chartBounce id="chart-bounce"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Top Pages Section -->
+    <section class="top-pages-section">
+      <h2>Pages les plus visitées</h2>
+      <div class="pages-grid">
+        <div *ngFor="let page of topPages" class="page-card">
+          <div class="page-info">
+            <h4>{{ page.title }}</h4>
+            <p>{{ page.url }}</p>
+          </div>
+          <div class="page-stats">
+            <span class="page-views">{{ page.views.toLocaleString() }} vues</span>
+            <span class="page-trend {{ page.trendIcon === '↑' ? 'positive' : page.trendIcon === '↓' ? 'negative' : 'neutral' }}">
+              {{ page.trendIcon }} {{ page.trendPercent }}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Keywords Section -->
+    <section class="keywords-section">
+      <h2>Mots-clés performants</h2>
+      <div class="keywords-grid">
+        <div *ngFor="let keyword of topKeywords" class="keyword-card">
+          <div class="keyword-info">
+            <h4>{{ keyword.keyword }}</h4>
+          </div>
+          <div class="keyword-stats">
+            <span class="keyword-clicks">{{ keyword.clicks }} clics</span>
+            <span class="keyword-position">Position: {{ keyword.position }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- URL Verification Section -->
+    <section class="url-verification-section">
+      <h2>Vérification d'URL</h2>
+      <div class="url-verification-form">
+        <input id="pageUrl" type="url" placeholder="Entrez l'URL à vérifier..." />
+        <button (click)="verifyUrl()" class="btn-primary">Vérifier</button>
+      </div>
+    </section>
+
+    <!-- AI Recommendations Section -->
+    <section class="ai-section" *ngIf="showAIPanel" id="ai-panel">
+      <h2>💡 Recommandations IA</h2>
+      <div class="ai-recommendations">
+        <div *ngFor="let rec of aiRecommendations" class="ai-card {{ rec.priority }}">
+          <div class="ai-header">
+            <span class="ai-icon">{{ rec.icon }}</span>
+            <h3>{{ rec.title }}</h3>
+            <span class="ai-label">{{ rec.label }}</span>
+          </div>
+          <p>{{ rec.body }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI Button -->
+    <section class="ai-trigger-section">
+      <button (click)="generateAIRecommendations()" class="btn-ai">
+        ✨ Générer des recommandations IA
+      </button>
+    </section>
+  </main>
+</div>
