@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { AuthService } from './auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-auth',
@@ -13,7 +15,7 @@ export class AuthComponent implements OnInit {
   showPassword = false;
   showConfirmPassword = false;
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: FormBuilder, private authService: AuthService, private router: Router) {
     this.authForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
@@ -22,18 +24,7 @@ export class AuthComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    // Set up password match validator for signup
-    this.confirmPassword.valueChanges.subscribe(() => {
-      if (!this.isLoginMode && this.confirmPassword.value) {
-        this.confirmPassword.setValidators([
-          Validators.required,
-          this.passwordMatchValidator()
-        ]);
-        this.confirmPassword.updateValueAndValidity();
-      }
-    });
-  }
+  ngOnInit(): void {}
 
   get email(): AbstractControl {
     return this.authForm.get('email')!;
@@ -61,10 +52,7 @@ export class AuthComponent implements OnInit {
       this.confirmPassword.setValidators([]);
     } else {
       this.fullName.setValidators([Validators.required]);
-      this.confirmPassword.setValidators([
-        Validators.required,
-        this.passwordMatchValidator()
-      ]);
+      this.confirmPassword.setValidators([Validators.required]);
     }
     
     this.fullName.updateValueAndValidity();
@@ -132,13 +120,11 @@ export class AuthComponent implements OnInit {
     return '';
   }
 
-  passwordMatchValidator(): ValidatorFn {
-    return (control: AbstractControl): ValidationErrors | null => {
-      const password = control.root.get('password')?.value;
-      const confirmPassword = control.value;
-      
-      return password === confirmPassword ? null : { passwordMismatch: true };
-    };
+  passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
+    const password = control.root.get('password')?.value;
+    const confirmPassword = control.value;
+    
+    return password === confirmPassword ? null : { passwordMismatch: true };
   }
 
   togglePassword(field: 'password' | 'confirmPassword'): void {
